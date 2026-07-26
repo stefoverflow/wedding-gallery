@@ -5,7 +5,8 @@ export default function Gallery({ photos, isAdmin, onOpenPhoto, onDelete, loadin
   if (loading) {
     return (
       <div className="gallery-state">
-        <p>Učitavanje fotografija...</p>
+        <span className="spinner" aria-hidden="true" />
+        <style>{galleryStyles}</style>
       </div>
     );
   }
@@ -132,9 +133,27 @@ const galleryStyles = `
   }
 
   .gallery-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
     padding: 50px 20px 80px;
     color: var(--ink-soft);
+  }
+
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--line);
+    border-top-color: var(--gold);
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .empty-title {
