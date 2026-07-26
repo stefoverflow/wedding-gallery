@@ -118,7 +118,7 @@ const galleryStyles = `
     height: 34px;
     border-radius: 50%;
     border: none;
-    background: rgba(46, 42, 37, 0.72);
+    background: var(--danger);
     color: #fff;
     font-size: 15px;
     cursor: pointer;
@@ -129,7 +129,7 @@ const galleryStyles = `
   }
 
   .delete-btn:hover {
-    background: var(--danger);
+    background: #7d332a;
   }
 
   .gallery-state {
