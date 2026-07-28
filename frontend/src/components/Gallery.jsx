@@ -1,7 +1,15 @@
 import React from "react";
 import { photoUrl } from "../api";
 
-export default function Gallery({ photos, isAdmin, onOpenPhoto, onDelete, loading }) {
+export default function Gallery({
+  photos,
+  isAdmin,
+  onOpenPhoto,
+  onDelete,
+  loading,
+  selectedIds,
+  onToggleSelect,
+}) {
   if (loading) {
     return (
       <div className="gallery-state">
@@ -23,30 +31,50 @@ export default function Gallery({ photos, isAdmin, onOpenPhoto, onDelete, loadin
 
   return (
     <div className="gallery">
-      {photos.map((photo, index) => (
-        <figure className="photo-tile" key={photo.id}>
-          <button
-            className="photo-btn"
-            onClick={() => onOpenPhoto(index)}
-            aria-label="Prikaži fotografiju preko celog ekrana"
-          >
-            <img src={photoUrl(photo.url)} alt="" loading="lazy" />
-          </button>
-          {isAdmin && (
+      {photos.map((photo, index) => {
+        const isSelected = selectedIds?.has(photo.id);
+        return (
+          <figure className={`photo-tile ${isSelected ? "selected" : ""}`} key={photo.id}>
             <button
-              className="delete-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(photo.id);
-              }}
-              aria-label="Obriši fotografiju"
-              title="Obriši fotografiju"
+              className="photo-btn"
+              onClick={() => onOpenPhoto(index)}
+              aria-label="Prikaži fotografiju preko celog ekrana"
             >
-              🗑
+              <img src={photoUrl(photo.url)} alt="" loading="lazy" />
             </button>
-          )}
-        </figure>
-      ))}
+            {isAdmin && (
+              <button
+                className={`select-checkbox ${isSelected ? "checked" : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleSelect(photo.id);
+                }}
+                aria-label={isSelected ? "Poništi izbor fotografije" : "Izaberi fotografiju"}
+                aria-pressed={isSelected}
+              >
+                {isSelected && (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                className="delete-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(photo.id);
+                }}
+                aria-label="Obriši fotografiju"
+                title="Obriši fotografiju"
+              >
+                🗑
+              </button>
+            )}
+          </figure>
+        );
+      })}
       <style>{galleryStyles}</style>
     </div>
   );
@@ -83,6 +111,17 @@ const galleryStyles = `
     overflow: hidden;
     box-shadow: var(--shadow-card);
     background: var(--line);
+    outline: 2px solid transparent;
+    outline-offset: -2px;
+    transition: outline-color 0.2s ease;
+  }
+
+  .photo-tile:hover {
+    outline-color: var(--accent-soft);
+  }
+
+  .photo-tile.selected {
+    outline-color: var(--accent);
   }
 
   @media (min-width: 640px) {
@@ -129,7 +168,35 @@ const galleryStyles = `
   }
 
   .delete-btn:hover {
-    background: #7d332a;
+    background: #9c2e22;
+  }
+
+  .select-checkbox {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid var(--accent-soft);
+    background: rgba(255, 255, 255, 0.9);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    backdrop-filter: blur(2px);
+  }
+
+  .select-checkbox svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .select-checkbox.checked {
+    background: var(--accent);
+    border-color: var(--accent);
   }
 
   .gallery-state {
@@ -146,7 +213,7 @@ const galleryStyles = `
     height: 32px;
     border-radius: 50%;
     border: 2px solid var(--line);
-    border-top-color: var(--gold);
+    border-top-color: var(--accent);
     animation: spin 0.8s linear infinite;
   }
 

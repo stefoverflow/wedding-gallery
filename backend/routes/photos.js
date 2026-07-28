@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const router = express.Router();
@@ -17,17 +18,21 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-function uploadBufferToCloudinary(file, uploaderName, uploadedAt) {
+function hashBuffer(buffer) {
+  return crypto.createHash("sha256").update(buffer).digest("hex");
+}
+
+function uploadBufferToCloudinary(file, uploaderName, uploadedAt, contentHash) {
   const id = uuidv4();
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
         public_id: `${FOLDER}/${id}`,
-        context: { uploaderName: uploaderName || "", uploadedAt },
+        context: { uploaderName: uploaderName || "", uploadedAt, contentHash },
       },
       (err, result) => {
         if (err) return reject(err);
-        resolve({ id, url: result.secure_url, uploadedAt });
+        resolve({ id, url: result.secure_url, uploadedAt, contentHash });
       }
     );
     stream.end(file.buffer);
@@ -66,11 +71,42 @@ router.post("/", (req, res, next) => {
       typeof req.body.uploaderName === "string" ? req.body.uploaderName.trim().slice(0, 60) : "";
 
     try {
+      // Same-content check: hash each incoming file and skip anything that
+      // matches a photo already in the gallery (or a repeat within this same
+      // request), so re-picking a photo that's already there doesn't create
+      // a second copy.
+      const existingPhotos = await store.getAllSortedNewestFirst();
+      const existingHashes = new Set(existingPhotos.map((p) => p.contentHash).filter(Boolean));
+
+      const seenInBatch = new Set();
+      const toUpload = [];
+      const duplicates = [];
+
+      for (const file of files) {
+        const hash = hashBuffer(file.buffer);
+        if (existingHashes.has(hash) || seenInBatch.has(hash)) {
+          duplicates.push(file.originalname);
+          continue;
+        }
+        seenInBatch.add(hash);
+        toUpload.push({ file, hash });
+      }
+
+      if (toUpload.length === 0) {
+        return res.status(409).json({
+          error:
+            duplicates.length === 1
+              ? "Ova fotografija je već otpremljena."
+              : "Ove fotografije su već otpremljene.",
+          duplicates,
+        });
+      }
+
       const uploadedAt = new Date().toISOString();
       const saved = await Promise.all(
-        files.map((file) => uploadBufferToCloudinary(file, uploaderName, uploadedAt))
+        toUpload.map(({ file, hash }) => uploadBufferToCloudinary(file, uploaderName, uploadedAt, hash))
       );
-      res.status(201).json({ photos: saved });
+      res.status(201).json({ photos: saved, duplicates });
     } catch (uploadErr) {
       // Cloudinary rejects the file itself (too large for the account's plan,
       // corrupt image, etc.) - surface that as a proper 4xx instead of a bare 500.

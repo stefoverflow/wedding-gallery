@@ -42,6 +42,7 @@ function resourceToPhoto(resource) {
     url: resource.secure_url,
     uploaderName: context.uploaderName || null,
     uploadedAt: context.uploadedAt || resource.created_at,
+    contentHash: context.contentHash || null,
   };
 }
 

@@ -54,9 +54,11 @@ export async function uploadPhotos(files, uploaderName, onProgress) {
       try {
         const data = JSON.parse(xhr.responseText);
         if (xhr.status >= 200 && xhr.status < 300) {
-          resolve(data.photos);
+          resolve({ photos: data.photos, duplicates: data.duplicates || [] });
         } else {
-          reject(new Error(data.error || "Otpremanje nije uspelo."));
+          const err = new Error(data.error || "Otpremanje nije uspelo.");
+          err.duplicates = data.duplicates || [];
+          reject(err);
         }
       } catch (err) {
         reject(new Error("Otpremanje nije uspelo."));
@@ -87,6 +89,18 @@ export async function deletePhoto(id, token) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Brisanje nije uspelo.");
   return true;
+}
+
+// No bulk endpoint on the backend, so fire the existing single-delete calls in
+// parallel and report back which ids actually succeeded.
+export async function deletePhotos(ids, token) {
+  const results = await Promise.allSettled(ids.map((id) => deletePhoto(id, token)));
+  const succeededIds = ids.filter((_, i) => results[i].status === "fulfilled");
+  const failedCount = ids.length - succeededIds.length;
+  const authExpired = results.some(
+    (r) => r.status === "rejected" && /sesij|prijav/i.test(r.reason?.message || "")
+  );
+  return { succeededIds, failedCount, authExpired };
 }
 
 export function photoUrl(path) {
