@@ -12,7 +12,7 @@ export default function Header({ isAdmin, onOpenLogin, onLogout }) {
             </button>
           </div>
         ) : (
-          <button className="btn btn-sm" onClick={onOpenLogin}>
+          <button className="btn btn-sm btn-primary" onClick={onOpenLogin}>
             Prijava
           </button>
         )}
@@ -52,7 +52,7 @@ export default function Header({ isAdmin, onOpenLogin, onLogout }) {
           font-size: 0.8rem;
           color: var(--ink-soft);
           background: var(--paper-raised);
-          border: 1px solid var(--line);
+          border: 1px solid var(--accent-soft);
           border-radius: 999px;
           padding: 6px 8px 6px 14px;
         }
@@ -68,12 +68,12 @@ export default function Header({ isAdmin, onOpenLogin, onLogout }) {
           font-weight: 400;
           font-size: clamp(2.6rem, 10vw, 4.2rem);
           margin: 6px 0 0;
-          color: var(--ink);
+          color: var(--black);
           line-height: 1.15;
         }
 
         .hero-names .amp {
-          color: var(--gold);
+          color: var(--accent);
           font-size: 0.85em;
           padding: 0 0.05em;
         }
@@ -84,14 +84,14 @@ export default function Header({ isAdmin, onOpenLogin, onLogout }) {
           text-transform: uppercase;
           letter-spacing: 0.14em;
           font-size: 1.05rem;
-          color: var(--ink);
+          color: var(--accent-deep);
           margin: 4px 0 10px;
         }
 
         .hero-date {
           font-family: var(--serif);
           letter-spacing: 0.3em;
-          color: var(--gold);
+          color: var(--accent);
           font-size: 1.15rem;
           margin: 0 0 14px;
         }

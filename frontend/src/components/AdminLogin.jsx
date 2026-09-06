@@ -68,7 +68,7 @@ export default function AdminLogin({ onClose, onLoginSuccess, showToast }) {
         .modal-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(20, 18, 15, 0.5);
+          background: rgba(22, 28, 20, 0.5);
           z-index: 110;
           display: flex;
           align-items: center;
@@ -123,7 +123,7 @@ export default function AdminLogin({ onClose, onLoginSuccess, showToast }) {
         }
 
         .modal-card input:focus {
-          border-color: var(--gold);
+          border-color: var(--accent);
         }
 
         .modal-error {

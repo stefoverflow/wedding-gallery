@@ -7,11 +7,12 @@ export default function ConfirmModal({
   cancelLabel = "Otkaži",
   onConfirm,
   onCancel,
+  isConfirming = false,
 }) {
   return (
-    <div className="modal-overlay" onClick={onCancel}>
+    <div className="modal-overlay" onClick={isConfirming ? undefined : onCancel}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()} role="alertdialog" aria-modal="true">
-        <button className="modal-close" onClick={onCancel} aria-label="Zatvori">
+        <button className="modal-close" onClick={onCancel} aria-label="Zatvori" disabled={isConfirming}>
           ✕
         </button>
         <p className="eyebrow">Potvrda</p>
@@ -19,11 +20,11 @@ export default function ConfirmModal({
         {message && <p className="modal-message">{message}</p>}
 
         <div className="modal-confirm-actions">
-          <button className="btn btn-ghost" onClick={onCancel}>
+          <button className="btn btn-ghost" onClick={onCancel} disabled={isConfirming}>
             {cancelLabel}
           </button>
-          <button className="btn btn-danger" onClick={onConfirm}>
-            {confirmLabel}
+          <button className="btn btn-danger" onClick={onConfirm} disabled={isConfirming}>
+            {isConfirming ? <span className="btn-spinner" aria-hidden="true" /> : confirmLabel}
           </button>
         </div>
       </div>
@@ -32,7 +33,7 @@ export default function ConfirmModal({
         .modal-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(20, 18, 15, 0.5);
+          background: rgba(22, 28, 20, 0.5);
           z-index: 110;
           display: flex;
           align-items: center;
@@ -62,6 +63,11 @@ export default function ConfirmModal({
           cursor: pointer;
         }
 
+        .modal-close:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+
         .modal-title {
           font-family: var(--serif);
           font-size: 1.5rem;
@@ -81,6 +87,26 @@ export default function ConfirmModal({
 
         .modal-confirm-actions .btn {
           flex: 1;
+        }
+
+        .modal-confirm-actions .btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .btn-spinner {
+          display: inline-block;
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          border: 2px solid var(--danger-soft);
+          border-top-color: var(--danger);
+          animation: btnSpin 0.7s linear infinite;
+        }
+
+        @keyframes btnSpin {
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>

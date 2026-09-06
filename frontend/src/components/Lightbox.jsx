@@ -1,8 +1,9 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { photoUrl } from "../api";
 
-export default function Lightbox({ photos, index, onClose, onNavigate, isAdmin, onDelete }) {
+export default function Lightbox({ photos, index, onClose, onNavigate, isAdmin, onDelete, showToast }) {
   const photo = photos[index];
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleKeyDown = useCallback(
     (e) => {
@@ -25,6 +26,29 @@ export default function Lightbox({ photos, index, onClose, onNavigate, isAdmin, 
   if (!photo) return null;
 
   const downloadName = `darko-i-andrijana-${photo.id}.jpg`;
+
+  const handleDownload = async (e) => {
+    e.stopPropagation();
+    if (isDownloading) return;
+    setIsDownloading(true);
+    try {
+      const res = await fetch(photoUrl(photo.url));
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = downloadName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      showToast?.("Preuzimanje nije uspelo. Pokušajte ponovo.", "error");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <div className="lightbox-overlay" onClick={onClose}>
@@ -59,14 +83,19 @@ export default function Lightbox({ photos, index, onClose, onNavigate, isAdmin, 
         <div className="lightbox-toolbar">
           {photo.uploaderName && <span className="uploader-tag">Od: {photo.uploaderName}</span>}
           <div className="toolbar-actions">
-            <a
-              className="btn btn-sm"
-              href={photoUrl(photo.url)}
-              download={downloadName}
-              onClick={(e) => e.stopPropagation()}
+            <button
+              className="btn btn-sm download-btn"
+              onClick={handleDownload}
+              disabled={isDownloading}
             >
-              ⬇ Preuzmi
-            </a>
+              {isDownloading ? (
+                <>
+                  <span className="btn-spinner" aria-hidden="true" /> Preuzimanje...
+                </>
+              ) : (
+                "⬇ Preuzmi"
+              )}
+            </button>
             {isAdmin && (
               <button
                 className="btn btn-sm btn-danger"
@@ -86,7 +115,7 @@ export default function Lightbox({ photos, index, onClose, onNavigate, isAdmin, 
         .lightbox-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(20, 18, 15, 0.92);
+          background: rgba(22, 28, 20, 0.92);
           z-index: 100;
           display: flex;
           align-items: center;
@@ -131,7 +160,7 @@ export default function Lightbox({ photos, index, onClose, onNavigate, isAdmin, 
         }
 
         .uploader-tag {
-          color: #e9e3d6;
+          color: #dce6d5;
           font-size: 0.95rem;
           font-style: italic;
         }
@@ -146,11 +175,37 @@ export default function Lightbox({ photos, index, onClose, onNavigate, isAdmin, 
           background: rgba(255, 253, 249, 0.94);
         }
 
+        .download-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .download-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .btn-spinner {
+          display: inline-block;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          border: 2px solid var(--accent-soft);
+          border-top-color: var(--accent);
+          animation: btnSpin 0.7s linear infinite;
+        }
+
+        @keyframes btnSpin {
+          to { transform: rotate(360deg); }
+        }
+
         .nav-btn {
           position: absolute;
           top: 50%;
           transform: translateY(-50%);
-          background: rgba(20, 18, 15, 0.5);
+          background: rgba(22, 28, 20, 0.5);
           color: #fff;
           border: none;
           width: 44px;
@@ -169,7 +224,7 @@ export default function Lightbox({ photos, index, onClose, onNavigate, isAdmin, 
         }
 
         .nav-btn:hover {
-          background: rgba(20, 18, 15, 0.8);
+          background: rgba(22, 28, 20, 0.8);
         }
 
         .nav-prev {

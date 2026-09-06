@@ -5,8 +5,9 @@ import Gallery from "./components/Gallery";
 import Lightbox from "./components/Lightbox";
 import AdminLogin from "./components/AdminLogin";
 import ConfirmModal from "./components/ConfirmModal";
+import SelectionBar from "./components/SelectionBar";
 import Toast from "./components/Toast";
-import { fetchPhotos, deletePhoto } from "./api";
+import { fetchPhotos, deletePhoto, deletePhotos } from "./api";
 
 const TOKEN_KEY = "wedding_admin_token";
 const PAGE_SIZE = 10;
@@ -22,6 +23,9 @@ export default function App() {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || "");
   const [toasts, setToasts] = useState([]);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const showToast = useCallback((message, type = "success") => {
     const id = Date.now() + Math.random();
@@ -74,6 +78,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem(TOKEN_KEY);
     setToken("");
+    setSelectedIds(new Set());
     showToast("Odjavljeni ste.", "success");
   };
 
@@ -87,7 +92,7 @@ export default function App() {
 
   const confirmDelete = async () => {
     const id = deleteTargetId;
-    setDeleteTargetId(null);
+    setIsDeleting(true);
     try {
       await deletePhoto(id, token);
       setPhotos((prev) => prev.filter((p) => p.id !== id));
@@ -98,10 +103,51 @@ export default function App() {
         handleLogout();
       }
       showToast(err.message || "Brisanje nije uspelo.", "error");
+    } finally {
+      setIsDeleting(false);
+      setDeleteTargetId(null);
     }
   };
 
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const confirmBulkDelete = async () => {
+    setIsDeleting(true);
+    const ids = Array.from(selectedIds);
+    const { succeededIds, failedCount, authExpired } = await deletePhotos(ids, token);
+
+    setPhotos((prev) => prev.filter((p) => !succeededIds.includes(p.id)));
+    setSelectedIds(new Set());
+    setIsDeleting(false);
+    setBulkDeleteConfirm(false);
+
+    if (failedCount === 0) {
+      showToast(
+        succeededIds.length === 1
+          ? "Fotografija je obrisana."
+          : `Obrisano je ${succeededIds.length} fotografija.`,
+        "success"
+      );
+    } else if (succeededIds.length === 0) {
+      showToast("Brisanje nije uspelo.", "error");
+    } else {
+      showToast(`Obrisano ${succeededIds.length}, ${failedCount} nije uspelo.`, "error");
+    }
+
+    if (authExpired) handleLogout();
+  };
+
   const isAdmin = Boolean(token);
+  const showSelectionBar = isAdmin && selectedIds.size > 0;
 
   return (
     <>
@@ -127,6 +173,8 @@ export default function App() {
           onOpenPhoto={setLightboxIndex}
           onDelete={handleDelete}
           onLoadMore={loadMorePhotos}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
         />
       </main>
 
@@ -142,6 +190,7 @@ export default function App() {
           onNavigate={setLightboxIndex}
           isAdmin={isAdmin}
           onDelete={handleDelete}
+          showToast={showToast}
         />
       )}
 
@@ -161,10 +210,35 @@ export default function App() {
           cancelLabel="Otkaži"
           onConfirm={confirmDelete}
           onCancel={cancelDelete}
+          isConfirming={isDeleting}
         />
       )}
 
-      <Toast toasts={toasts} />
+      {bulkDeleteConfirm && (
+        <ConfirmModal
+          title={
+            selectedIds.size === 1
+              ? "Obriši izabranu fotografiju?"
+              : `Obriši ${selectedIds.size} izabranih fotografija?`
+          }
+          message="Ova radnja se ne može opozvati."
+          confirmLabel="Obriši"
+          cancelLabel="Otkaži"
+          onConfirm={confirmBulkDelete}
+          onCancel={() => setBulkDeleteConfirm(false)}
+          isConfirming={isDeleting}
+        />
+      )}
+
+      {showSelectionBar && (
+        <SelectionBar
+          count={selectedIds.size}
+          onDelete={() => setBulkDeleteConfirm(true)}
+          onClear={clearSelection}
+        />
+      )}
+
+      <Toast toasts={toasts} liftedBy={showSelectionBar ? 64 : 0} />
 
       <style>{`
         .site-footer {

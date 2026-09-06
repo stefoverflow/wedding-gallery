@@ -15,20 +15,34 @@ export default function Dropzone({ onUploaded, showToast }) {
       if (files.length === 0) return;
 
       const { valid, errors } = validateFiles(files);
+      const messages = [...errors];
 
-      if (errors.length > 0) {
-        showToast(errors.join(" "), "error");
+      const isSameFile = (a, b) =>
+        a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
+
+      const alreadyPending = pending.map((p) => p.file);
+      const unique = [];
+      for (const file of valid) {
+        if ([...alreadyPending, ...unique].some((f) => isSameFile(f, file))) {
+          messages.push(`${file.name}: fotografija je već dodata.`);
+        } else {
+          unique.push(file);
+        }
       }
-      if (valid.length === 0) return;
 
-      const withPreviews = valid.map((file) => ({
+      if (messages.length > 0) {
+        showToast(messages.join(" "), "error");
+      }
+      if (unique.length === 0) return;
+
+      const withPreviews = unique.map((file) => ({
         file,
         previewUrl: URL.createObjectURL(file),
       }));
 
       setPending((prev) => [...prev, ...withPreviews]);
     },
-    [showToast]
+    [pending, showToast]
   );
 
   const handleDrop = (e) => {
@@ -51,22 +65,44 @@ export default function Dropzone({ onUploaded, showToast }) {
     setIsUploading(true);
     setProgress(0);
     try {
-      const uploaded = await uploadPhotos(
+      const { photos: uploaded, duplicates } = await uploadPhotos(
         pending.map((p) => p.file),
         uploaderName.trim(),
         setProgress
       );
-      showToast(
-        uploaded.length > 1
-          ? `Otpremljeno je ${uploaded.length} fotografija. Hvala vam!`
-          : "Fotografija je uspešno otpremljena. Hvala vam!",
-        "success"
-      );
+
+      const messages = [];
+      if (uploaded.length > 0) {
+        messages.push(
+          uploaded.length > 1
+            ? `Otpremljeno je ${uploaded.length} fotografija. Hvala vam!`
+            : "Fotografija je uspešno otpremljena. Hvala vam!"
+        );
+      }
+      if (duplicates.length > 0) {
+        messages.push(
+          duplicates.length === 1
+            ? `${duplicates[0]} je već otpremljena ranije.`
+            : `${duplicates.length} fotografija je već otpremljeno ranije.`
+        );
+      }
+      showToast(messages.join(" "), uploaded.length > 0 ? "success" : "error");
+
       pending.forEach((p) => URL.revokeObjectURL(p.previewUrl));
       setPending([]);
-      onUploaded();
+      if (uploaded.length > 0) onUploaded();
     } catch (err) {
-      showToast(err.message || "Otpremanje nije uspelo. Pokušajte ponovo.", "error");
+      if (err.duplicates?.length > 0) {
+        const message =
+          err.duplicates.length === 1
+            ? `${err.duplicates[0]} je već otpremljena ranije.`
+            : "Sve izabrane fotografije su već otpremljene ranije.";
+        showToast(message, "error");
+        pending.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+        setPending([]);
+      } else {
+        showToast(err.message || "Otpremanje nije uspelo. Pokušajte ponovo.", "error");
+      }
     } finally {
       setIsUploading(false);
       setProgress(0);
@@ -176,7 +212,7 @@ export default function Dropzone({ onUploaded, showToast }) {
         }
 
         .dropzone {
-          border: 1.5px dashed var(--gold-soft);
+          border: 1.5px dashed var(--accent-soft);
           background: var(--paper-raised);
           border-radius: var(--radius-lg);
           padding: 34px 20px;
@@ -187,12 +223,12 @@ export default function Dropzone({ onUploaded, showToast }) {
 
         .dropzone:hover,
         .dropzone.dragging {
-          border-color: var(--gold);
-          background: #fffefb;
+          border-color: var(--accent);
+          background: #f7faf5;
         }
 
         .dropzone-icon {
-          color: var(--gold);
+          color: var(--accent);
           display: flex;
           justify-content: center;
           margin-bottom: 10px;
@@ -252,7 +288,7 @@ export default function Dropzone({ onUploaded, showToast }) {
           height: 20px;
           border-radius: 50%;
           border: none;
-          background: rgba(46, 42, 37, 0.75);
+          background: rgba(47, 58, 45, 0.75);
           color: #fff;
           font-size: 14px;
           line-height: 1;
@@ -274,7 +310,7 @@ export default function Dropzone({ onUploaded, showToast }) {
         }
 
         .name-input:focus {
-          border-color: var(--gold);
+          border-color: var(--accent);
         }
 
         .upload-btn {
@@ -291,7 +327,7 @@ export default function Dropzone({ onUploaded, showToast }) {
 
         .progress-fill {
           height: 100%;
-          background: var(--gold);
+          background: var(--accent);
           transition: width 0.2s ease;
         }
       `}</style>
