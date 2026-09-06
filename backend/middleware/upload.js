@@ -11,7 +11,7 @@ const ALLOWED_MIME_TYPES = new Set([
 
 const ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"]);
 
-const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB per photo
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB per photo - Cloudinary's account limit for a single image upload
 const MAX_FILES_PER_REQUEST = 20;
 
 function fileFilter(req, file, cb) {

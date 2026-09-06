@@ -55,7 +55,7 @@ Ovo pravi `frontend/dist` folder koji možete postaviti na bilo koji static host
 
 ## Funkcionalnosti
 
-- **Otpremanje fotografija**: drag & drop ili klik, više fotografija odjednom, opciono ime gosta, validacija tipa fajla (JPG/PNG/WEBP/HEIC) i veličine (do 20MB) i na frontendu i na backendu.
+- **Otpremanje fotografija**: drag & drop ili klik, više fotografija odjednom, opciono ime gosta, validacija tipa fajla (JPG/PNG/WEBP/HEIC) i veličine (do 10MB, Cloudinary-jevo ograničenje za jednu fotografiju) i na frontendu i na backendu.
 - **Galerija**: najnovije fotografije su prve, responzivan grid (2 kolone na mobilnom, do 4 na desktopu).
 - **Fullscreen pregled**: klik na fotografiju otvara je preko celog ekrana sa opcijom preuzimanja i navigacijom strelicama/tasterima.
 - **Admin prijava**: dugme "Prijava" u gornjem desnom uglu. Nakon prijave admin vidi dugme za brisanje na svakoj fotografiji (i u fullscreen prikazu).

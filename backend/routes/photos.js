@@ -7,11 +7,20 @@ const { requireAdmin } = require("../middleware/auth");
 const { cloudinary, FOLDER } = require("../utils/cloudinary");
 const store = require("../utils/photoStore");
 
-// GET /api/photos - newest first, for the public gallery
+const DEFAULT_PAGE_SIZE = 10;
+const MAX_PAGE_SIZE = 100;
+
+// GET /api/photos - newest first, for the public gallery. Paginated for infinite scroll.
 router.get("/", async (req, res, next) => {
   try {
-    const photos = await store.getAllSortedNewestFirst();
-    res.json({ photos });
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(req.query.limit, 10) || DEFAULT_PAGE_SIZE));
+
+    const all = await store.getAllSortedNewestFirst();
+    const start = (page - 1) * limit;
+    const photos = all.slice(start, start + limit);
+
+    res.json({ photos, page, limit, total: all.length, hasMore: start + limit < all.length });
   } catch (err) {
     next(err);
   }
@@ -70,8 +79,16 @@ router.post("/", (req, res, next) => {
       const saved = await Promise.all(
         files.map((file) => uploadBufferToCloudinary(file, uploaderName, uploadedAt))
       );
+      store.invalidateCache();
       res.status(201).json({ photos: saved });
     } catch (uploadErr) {
+      // Cloudinary rejects the file itself (too large for the account's plan,
+      // corrupt image, etc.) - surface that as a proper 4xx instead of a bare 500.
+      if (uploadErr?.http_code && uploadErr.http_code >= 400 && uploadErr.http_code < 500) {
+        return res.status(400).json({
+          error: "Otpremanje nije uspelo: fajl je odbijen (prevelik ili oštećen). Probajte drugu fotografiju.",
+        });
+      }
       next(uploadErr);
     }
   });

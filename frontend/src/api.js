@@ -1,7 +1,7 @@
 const API_URL = import.meta.env.VITE_API_URL || "";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB, keep in sync with backend
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB, keep in sync with backend (Cloudinary's single-upload limit)
 
 // Front-end validation so people get instant feedback before we even hit the network.
 export function validateFiles(files) {
@@ -19,7 +19,7 @@ export function validateFiles(files) {
       continue;
     }
     if (file.size > MAX_FILE_SIZE) {
-      errors.push(`${file.name}: fajl je prevelik (maksimum 20MB).`);
+      errors.push(`${file.name}: fajl je prevelik (maksimum 10MB).`);
       continue;
     }
     valid.push(file);
@@ -28,11 +28,11 @@ export function validateFiles(files) {
   return { valid, errors };
 }
 
-export async function fetchPhotos() {
-  const res = await fetch(`${API_URL}/api/photos`);
+export async function fetchPhotos(page = 1, limit = 10) {
+  const res = await fetch(`${API_URL}/api/photos?page=${page}&limit=${limit}`);
   if (!res.ok) throw new Error("Neuspešno učitavanje fotografija.");
   const data = await res.json();
-  return data.photos;
+  return { photos: data.photos, hasMore: Boolean(data.hasMore), total: data.total };
 }
 
 export async function uploadPhotos(files, uploaderName, onProgress) {

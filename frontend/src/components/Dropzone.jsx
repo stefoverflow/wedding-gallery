@@ -123,7 +123,7 @@ export default function Dropzone({ onUploaded, showToast }) {
         <p className="dropzone-text">
           Prevucite fotografije ovde <span>ili kliknite da izaberete</span>
         </p>
-        <p className="dropzone-hint">JPG, PNG, WEBP ili HEIC · do 20MB po fotografiji</p>
+        <p className="dropzone-hint">JPG, PNG, WEBP ili HEIC · do 10MB po fotografiji</p>
       </div>
 
       {pending.length > 0 && (

@@ -9,10 +9,14 @@ import Toast from "./components/Toast";
 import { fetchPhotos, deletePhoto } from "./api";
 
 const TOKEN_KEY = "wedding_admin_token";
+const PAGE_SIZE = 10;
 
 export default function App() {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || "");
@@ -28,15 +32,34 @@ export default function App() {
   }, []);
 
   const loadPhotos = useCallback(async () => {
+    setLoading(true);
     try {
-      const data = await fetchPhotos();
-      setPhotos(data);
+      const data = await fetchPhotos(1, PAGE_SIZE);
+      setPhotos(data.photos);
+      setPage(1);
+      setHasMore(data.hasMore);
     } catch (err) {
       showToast("Nije moguće učitati fotografije. Proverite konekciju.", "error");
     } finally {
       setLoading(false);
     }
   }, [showToast]);
+
+  const loadMorePhotos = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const data = await fetchPhotos(nextPage, PAGE_SIZE);
+      setPhotos((prev) => [...prev, ...data.photos]);
+      setPage(nextPage);
+      setHasMore(data.hasMore);
+    } catch (err) {
+      showToast("Nije moguće učitati još fotografija.", "error");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [page, hasMore, loadingMore, showToast]);
 
   useEffect(() => {
     loadPhotos();
@@ -99,8 +122,11 @@ export default function App() {
           photos={photos}
           isAdmin={isAdmin}
           loading={loading}
+          loadingMore={loadingMore}
+          hasMore={hasMore}
           onOpenPhoto={setLightboxIndex}
           onDelete={handleDelete}
+          onLoadMore={loadMorePhotos}
         />
       </main>
 
